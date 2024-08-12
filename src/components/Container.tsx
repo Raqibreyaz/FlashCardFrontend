@@ -11,7 +11,7 @@ const Container = ({ children, LoadingConditions }: ContainerProps) => {
   return !isLoading ? (
     <div>{children}</div>
   ) : (
-    <h1 className="h-[100vh] w-full flex justify-center items-center">
+    <h1 className="h-[100vh] w-full flex justify-center items-center capitalize font-bold">
       Loading...
     </h1>
   );

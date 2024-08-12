@@ -1,9 +1,9 @@
-import React from 'react'
+import FlashCardGrid from '../components/FlashCardGrid'
 
 const Home = () => {
   return (
     <div>
-      
+      <FlashCardGrid inDashBoard={false}/>
     </div>
   )
 }

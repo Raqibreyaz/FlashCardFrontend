@@ -1,25 +1,38 @@
-import { memo, useState } from "react";
+import {
+  memo,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import Pagination from "./Pagination";
-import { useFetchFlashCardsQuery } from "../../store/flashCardApi";
+import {
+  useDeleteFlashCardMutation,
+  useFetchFlashCardsQuery,
+} from "../../store/flashCardApi";
 import Container from "./Container";
+import { TiEdit } from "react-icons/ti";
+import { MdDelete } from "react-icons/md";
+import { showMessage } from "./Message";
 
 type Card = {
-  id: number;
+  pageIndex: number;
   question: string;
   answer: string;
-  inDashBoard: boolean;
 };
 
 type gridParam = {
-  inDashBoard: boolean;
+  inDashBoard?: boolean;
+  formRef?: MutableRefObject<HTMLFormElement | null>;
+  setEditingCardData?: React.Dispatch<React.SetStateAction<{} | Card>>;
 };
 
-const FlashCard = memo(({ question, answer }: Card) => {
+const FlashCard = memo(({ question, answer, pageIndex }: Card) => {
   const [flipped, setFlipped] = useState(false);
 
   return (
     <div
-      className="sm:w-[80vw] w-[95vw] h-[80vh] text-sm sm:text-lg border-black relative cursor-pointer text-white"
+      className="sm:w-[80vw] w-[90vw] border h-[80vh] bg-gray-200 text-sm sm:text-lg border-gray-400 relative rounded-md cursor-pointer text-black"
       onClick={() => setFlipped(!flipped)}
       style={{ perspective: "1000px" }} // Perspective for 3D effect
     >
@@ -33,18 +46,20 @@ const FlashCard = memo(({ question, answer }: Card) => {
         }}
       >
         <div
-          className="absolute w-full h-full bg-zinc-900 flex items-center justify-center "
+          className="absolute w-full h-full flex items-center text-center justify-center "
           style={{
             backfaceVisibility: "hidden",
           }}
         >
           <div>
-            <h1 className="font-semibold capitalize">question:</h1>
+            <h1 className="font-semibold capitalize">
+              question: {pageIndex + 1}
+            </h1>
             {question}
           </div>
         </div>
         <div
-          className="absolute w-full h-full bg-zinc-900 flex items-center justify-center transform rotate-y-180 "
+          className="absolute w-full h-full flex items-center justify-center transform rotate-y-180 "
           style={{
             backfaceVisibility: "hidden",
           }}
@@ -59,91 +74,82 @@ const FlashCard = memo(({ question, answer }: Card) => {
   );
 });
 
-const FlashCardGrid = memo(({ inDashBoard }: gridParam) => {
-  const dataArray = [
-    { id: 1, question: "What is the capital of France?", answer: "Paris" },
-    { id: 2, question: "What is 2 + 2?", answer: "4" },
-    {
-      id: 3,
-      question: "Who wrote 'To Kill a Mockingbird'?",
-      answer: "Harper Lee",
-    },
-    {
-      id: 4,
-      question: "What is the largest planet in our solar system?",
-      answer: "Jupiter",
-    },
-    { id: 5, question: "What is the chemical symbol for gold?", answer: "Au" },
-    { id: 6, question: "In which year did the Titanic sink?", answer: "1912" },
-    {
-      id: 7,
-      question: "What is the hardest natural substance on Earth?",
-      answer: "Diamond",
-    },
-    {
-      id: 8,
-      question: "Who painted the Mona Lisa?",
-      answer: "Leonardo da Vinci",
-    },
-    { id: 9, question: "What is the smallest prime number?", answer: "2" },
-    {
-      id: 10,
-      question: "What is the main ingredient in guacamole?",
-      answer: "Avocado",
-    },
-    {
-      id: 11,
-      question: "Who is known as the father of modern physics?",
-      answer: "Albert Einstein",
-    },
-    { id: 12, question: "What is the currency of Japan?", answer: "Yen" },
-    {
-      id: 13,
-      question: "What is the largest ocean on Earth?",
-      answer: "Pacific Ocean",
-    },
-    { id: 14, question: "Who wrote '1984'?", answer: "George Orwell" },
-    {
-      id: 15,
-      question: "What is the boiling point of water in Celsius?",
-      answer: "100°C",
-    },
-    {
-      id: 16,
-      question: "Which planet is known as the Red Planet?",
-      answer: "Mars",
-    },
-    {
-      id: 17,
-      question: "What is the chemical symbol for water?",
-      answer: "H2O",
-    },
-    { id: 18, question: "What is the capital of Canada?", answer: "Ottawa" },
-    {
-      id: 19,
-      question: "Who is the author of 'Harry Potter'?",
-      answer: "J.K. Rowling",
-    },
-    {
-      id: 20,
-      question: "What is the largest desert in the world?",
-      answer: "Sahara",
-    },
-  ];
+const FlashCardGrid = memo(
+  ({ inDashBoard, formRef, setEditingCardData }: gridParam) => {
+    const [
+      DeleteFlashCard,
+      { isLoading: isDeleting, isSuccess: isSuccessDeleting },
+    ] = useDeleteFlashCardMutation();
 
-  const { data: { flashCards = [] } = {}, isLoading } =
-    useFetchFlashCardsQuery();
+    const { data: { flashCards = [] } = {}, isLoading } =
+      useFetchFlashCardsQuery();
 
-  return (
-    <Container LoadingConditions={[isLoading]}>
-      <div className="p-4 space-y-4 mx-auto flex flex-col items-center">
-        {dataArray.map((card) => (
-          <FlashCard key={card.id} inDashBoard={inDashBoard} {...card} />
-        ))}
-        <Pagination />
-      </div>
-    </Container>
-  );
-});
+    const [pageIndex, setPageIndex] = useState(0);
+
+    // will fill the form and scroll up to the form
+    const handleEditFlashCard = useCallback(() => {
+      if (formRef && formRef.current && setEditingCardData) {
+        formRef.current.scrollIntoView({ behavior: "smooth" });
+        setEditingCardData(flashCards[pageIndex]);
+      }
+    }, [flashCards, pageIndex, formRef]);
+
+    // will show a confirmation message and then delete the flashcard
+    const handleDeleteFlashCard = useCallback(() => {
+      showMessage({
+        type: "warning",
+        message: "do you really want to delete this flashcard",
+      }).then((isConfirmed) => {
+        if (isConfirmed) {
+          DeleteFlashCard(flashCards[pageIndex].id);
+        }
+      });
+    }, [flashCards, pageIndex]);
+
+    // will show message when flash card deleted
+    useEffect(() => {
+      if (isSuccessDeleting) {
+        showMessage({
+          type: "success",
+          message: "flashcard deleted successfully",
+        });
+
+        if (flashCards[pageIndex - 1]) setPageIndex(pageIndex - 1);
+        else if (flashCards[pageIndex + 1]) setPageIndex(pageIndex + 1);
+        else setPageIndex(0);
+      }
+    }, [isSuccessDeleting]);
+
+    return (
+      <Container LoadingConditions={[isLoading, isDeleting]}>
+        {flashCards.length > 0 && flashCards[pageIndex] && (
+          <div className="p-4 pt-2 space-y-4 mx-auto flex flex-col items-center">
+            <div className="flex w-full justify-center">
+              <FlashCard
+                key={flashCards[pageIndex].id}
+                {...flashCards[pageIndex]}
+                pageIndex={pageIndex}
+              />
+              <div className={inDashBoard ? "flex flex-col max-sm:gap-y-5 gap-y-2" : "hidden"}>
+                <button type="button" onClick={handleEditFlashCard}>
+                  <TiEdit className="max-sm:size-5 size-8  text-yellow-500" />
+                </button>
+                <button type="button" onClick={handleDeleteFlashCard}>
+                  <MdDelete className="max-sm:size-5 size-8 text-red-500" />
+                </button>
+              </div>
+            </div>
+
+            <Pagination
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              noOfPages={flashCards.length - 1}
+            />
+          </div>
+        )}
+      </Container>
+    );
+  }
+);
 
 export default FlashCardGrid;

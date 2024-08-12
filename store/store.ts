@@ -1,4 +1,4 @@
-import { configureStore, ConfigureStoreOptions } from "@reduxjs/toolkit";
+import { configureStore } from "@reduxjs/toolkit";
 import { flashCardApi } from "./flashCardApi";
 
 export const store = configureStore({

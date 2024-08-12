@@ -17,7 +17,7 @@ export const flashCardApi = createApi({
   reducerPath: "flashCard",
   tagTypes: ["flashCards"],
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:4000/api/v1/flashcards/",
+    baseUrl: "https://flashcardbackend-1-x8yu.onrender.com/api/v1/flashcards/",
   }),
   endpoints: (builder) => ({
     fetchFlashCards: builder.query<receivedData, void>({
@@ -42,7 +42,7 @@ export const flashCardApi = createApi({
 
     updateFlashCards: builder.mutation<
       receivedData,
-      { id: string; data: { question?: string; answer?: string } }
+      { id: number; data: { question?: string; answer?: string } }
     >({
       query: ({ id, data }) => ({
         url: `update-flashcard/${id}`,
@@ -52,7 +52,7 @@ export const flashCardApi = createApi({
       invalidatesTags: ["flashCards"],
     }),
 
-    deleteFlashCard: builder.mutation<receivedData, string>({
+    deleteFlashCard: builder.mutation<receivedData, number>({
       query: (id) => ({
         url: `delete-flashcard/${id}`,
         method: "DELETE",
